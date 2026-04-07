@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="52W Protocol">
+<title>52 Week Protocol</title>
+<style>
+  :root {
+    --bg: #080c10; --panel: #0d1117; --card: #111820; --border: #1e2d3d;
+    --gold: #c9a84c; --gold-l: #e8c96d; --blue: #3b82f6; --green: #22c55e;
+    --red: #ef4444; --orange: #f97316; --text: #e2eaf4; --muted: #8899aa;
+    --accent: #1e3a5f; --purple: #a78bfa;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { background: var(--bg); color: var(--text); font-family: 'Trebuchet MS', sans-serif; min-height: 100vh; overflow-x: hidden; }
+  button { font-family: inherit; cursor: pointer; border: none; background: none; }
+  .mono { font-family: 'Courier New', monospace; }
+  .label { font-size: 10px; letter-spacing: 3px; font-family: 'Courier New', monospace; }
+
+  /* HEADER */
+  #header { background: linear-gradient(135deg,#0d1520,#111e2e); padding: 18px 16px 14px; border-bottom: 1px solid var(--phase-color, #c9a84c)55; position: sticky; top: 0; z-index: 100; }
+  .header-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+  .header-phase { font-size: 10px; letter-spacing: 4px; font-family: 'Courier New', monospace; margin-bottom: 3px; }
+  .header-title { font-size: clamp(20px,5vw,32px); font-weight: bold; color: #fff; line-height: 1.1; }
+  .header-sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .weight-box { background: var(--card); border-radius: 14px; padding: 10px 16px; text-align: center; border: 1px solid; min-width: 130px; }
+  .weight-val { font-size: 26px; font-weight: bold; }
+  .weight-sub { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .progress-bar-bg { height: 5px; background: var(--border); border-radius: 4px; margin-top: 6px; }
+  .progress-bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s; }
+  .focus-bar { margin-top: 10px; background: rgba(0,0,0,0.3); border-radius: 10px; padding: 9px 13px; font-size: 12px; font-style: italic; border-left: 3px solid; }
+  .anchors { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+  .anchor-chip { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 5px 10px; text-align: center; min-width: 68px; }
+  .anchor-val { font-size: 11px; font-weight: bold; color: var(--gold-l); }
+  .anchor-label { font-size: 9px; color: var(--muted); }
+
+  /* WEEK PICKER */
+  #week-strip { background: var(--panel); border-bottom: 1px solid var(--border); padding: 8px 0 0; }
+  .week-scroll { display: flex; gap: 4px; padding: 0 16px 8px; overflow-x: auto; scrollbar-width: none; }
+  .week-scroll::-webkit-scrollbar { display: none; }
+  .week-btn { min-width: 34px; height: 34px; border-radius: 7px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: 11px; font-family: 'Courier New', monospace; flex-shrink: 0; transition: all 0.15s; }
+  .week-btn.active { font-weight: bold; }
+  .week-btn.past { opacity: 0.5; }
+  .phase-legend { display: flex; gap: 12px; padding: 6px 16px 8px; overflow-x: auto; scrollbar-width: none; }
+  .phase-legend::-webkit-scrollbar { display: none; }
+  .legend-item { display: flex; align-items: center; gap: 4px; white-space: nowrap; font-size: 10px; color: var(--muted); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+  /* TABS */
+  #tabs { background: var(--panel); border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; }
+  #tabs::-webkit-scrollbar { display: none; }
+  .tab-bar { display: flex; padding: 0 12px; }
+  .tab-btn { padding: 11px 14px; border: none; background: transparent; color: var(--muted); border-bottom: 2px solid transparent; font-size: 11px; letter-spacing: 1px; font-family: 'Courier New', monospace; white-space: nowrap; transition: all 0.15s; }
+  .tab-btn.active { font-weight: bold; }
+
+  /* CONTENT */
+  #content { padding: 14px 14px 90px; max-width: 900px; margin: 0 auto; }
+
+  /* CARDS */
+  .card { background: var(--card); border-radius: 14px; padding: 16px; margin-bottom: 12px; border: 1px solid var(--border); }
+  .card.gold-border { border-color: rgba(201,168,76,0.4); }
+  .card.phase-border { border-color: rgba(201,168,76,0.3); }
+  .section-label { font-size: 10px; letter-spacing: 3px; font-family: 'Courier New', monospace; margin-bottom: 8px; }
+
+  /* DAY GRID */
+  .day-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 5px; margin-bottom: 16px; }
+  .day-btn { background: var(--card); border: 1px solid var(--border); border-radius: 9px; padding: 9px 3px; text-align: center; color: var(--muted); font-size: 13px; font-weight: bold; transition: all 0.15s; }
+  .day-btn .day-type { font-size: 9px; margin-top: 3px; font-family: 'Courier New', monospace; }
+  .day-btn .day-dry { font-size: 9px; color: var(--red); margin-top: 2px; }
+
+  /* MACRO CHIPS */
+  .macro-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+  .macro-chip { background: var(--panel); border-radius: 9px; padding: 7px 12px; border: 1px solid var(--border); }
+  .macro-val { font-size: 13px; font-weight: bold; }
+  .macro-label { font-size: 9px; color: var(--muted); }
+
+  /* EXERCISE CARD */
+  .ex-card { background: var(--panel); border-radius: 11px; padding: 14px; margin-bottom: 9px; border: 1px solid var(--border); }
+  .ex-name { font-size: 15px; font-weight: bold; color: #fff; }
+  .ex-muscle { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .ex-stats { display: flex; gap: 6px; margin-top: 9px; flex-wrap: wrap; }
+  .ex-stat { border-radius: 8px; padding: 6px 10px; text-align: center; border: 1px solid; }
+  .ex-stat-val { font-size: 17px; font-weight: bold; }
+  .ex-stat-label { font-size: 9px; color: var(--muted); }
+  .ex-note { margin-top: 8px; font-size: 12px; background: rgba(59,130,246,0.1); border-radius: 8px; padding: 7px 10px; color: var(--blue); }
+  .ex-gain { font-size: 11px; color: var(--green); margin-top: 5px; }
+
+  /* MEAL CARDS */
+  .meal-card { background: var(--card); border-radius: 13px; padding: 15px; margin-bottom: 10px; border: 1px solid var(--border); cursor: pointer; transition: border-color 0.2s; }
+  .meal-card.open { border-color: rgba(34,197,94,0.6); }
+  .meal-time { font-size: 10px; letter-spacing: 2px; font-family: 'Courier New', monospace; color: var(--green); }
+  .meal-meta { display: flex; gap: 12px; margin-top: 6px; flex-wrap: wrap; }
+  .meal-meta-item { font-size: 12px; }
+  .meal-expand-arrow { font-size: 16px; color: var(--muted); }
+  .tag-row { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 11px; }
+  .tag { background: var(--panel); border: 1px solid var(--border); border-radius: 20px; padding: 3px 10px; font-size: 11px; color: var(--muted); }
+  .insight { border-radius: 0 9px 9px 0; padding: 8px 11px; margin-bottom: 7px; border-left: 3px solid; }
+  .insight-label { font-size: 10px; letter-spacing: 1px; font-family: 'Courier New', monospace; margin-bottom: 3px; }
+  .insight-text { font-size: 12px; color: var(--text); line-height: 1.6; }
+
+  /* CHECKLIST */
+  .check-item { display: flex; gap: 11px; align-items: center; padding: 12px 13px; background: var(--card); border: 1px solid var(--border); border-radius: 11px; margin-bottom: 7px; cursor: pointer; transition: all 0.15s; }
+  .check-item.done { background: rgba(0,0,0,0.3); }
+  .check-box { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: bold; flex-shrink: 0; color: #000; transition: all 0.15s; }
+  .check-text { font-size: 13px; color: var(--muted); transition: color 0.15s; }
+  .check-item.done .check-text { color: #fff; }
+
+  /* PRAYER CARD */
+  .prayer-grid { display: flex; gap: 7px; flex-wrap: wrap; }
+  .prayer-chip { background: var(--panel); border-radius: 10px; padding: 8px 12px; border: 1px solid rgba(201,168,76,0.2); text-align: center; }
+  .prayer-icon { font-size: 16px; }
+  .prayer-name { font-size: 11px; color: var(--gold-l); font-weight: bold; margin-top: 2px; }
+  .prayer-time { font-size: 10px; color: var(--muted); }
+
+  /* SCHEDULE */
+  .schedule-item { display: flex; gap: 10px; padding: 6px 0; border-bottom: 1px solid rgba(30,45,61,0.4); align-items: flex-start; }
+  .schedule-num { width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; flex-shrink: 0; margin-top: 1px; }
+  .schedule-text { font-size: 13px; line-height: 18px; }
+
+  /* WEIGHT TIMELINE */
+  .timeline-row { display: flex; gap: 10px; padding: 9px 0; border-bottom: 1px solid rgba(30,45,61,0.5); align-items: flex-start; }
+  .timeline-wk { min-width: 65px; font-size: 11px; font-family: 'Courier New', monospace; color: var(--gold); font-weight: bold; }
+  .timeline-weight { min-width: 85px; font-size: 14px; font-weight: bold; }
+  .timeline-note { font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+  /* VITAMIN/AUTOPHAGY CARDS */
+  .info-card { background: var(--card); border-radius: 13px; padding: 15px; margin-bottom: 10px; border: 1px solid var(--border); }
+  .badge { display: inline-block; border-radius: 20px; padding: 2px 10px; font-size: 10px; font-family: 'Courier New', monospace; border: 1px solid; }
+
+  /* CIRCLE PROGRESS */
+  .circle-progress { width: 66px; height: 66px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; border: 4px solid; }
+
+  /* COMPLETE BANNER */
+  .complete-banner { text-align: center; padding: 24px; border-radius: 15px; margin-top: 10px; border: 1px solid rgba(34,197,94,0.4); background: rgba(34,197,94,0.06); }
+
+  /* SCROLL HINT */
+  .scroll-hint { text-align: center; font-size: 10px; color: var(--muted); padding: 6px 0 2px; font-family: 'Courier New', monospace; letter-spacing: 2px; }
+
+  @media (max-width: 400px) {
+    .header-title { font-size: 20px; }
+    .day-btn { font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+<div id="header"></div>
+<div id="week-strip"></div>
+<div id="tabs"></div>
+<div id="content"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════════════
+
+const PHASES = [
+  { id:1, weeks:[1,8],   label:"Foundation",      color:"#3b82f6", emoji:"🧱",
+    focus:"Master the movements. Build the habit. Don't chase intensity — chase consistency.",
+    calNormal:"1,650–1,900", calFast:"1,300–1,500", protein:"120–135g", fiber:"35–40g",
+    note:"Form over weight every single rep. Record yourself. Fix the patterns now." },
+  { id:2, weeks:[9,20],  label:"Build Momentum",  color:"#f97316", emoji:"⚡",
+    focus:"Progressive overload locked in. Fat loss accelerating. Strength visibly increasing.",
+    calNormal:"1,600–1,850", calFast:"1,250–1,450", protein:"130–145g", fiber:"35–40g",
+    note:"Add weight when you hit the top rep range for ALL sets. Track every lift." },
+  { id:3, weeks:[21,32], label:"Peak Burn",        color:"#ef4444", emoji:"🔥",
+    focus:"Biggest fat loss window. Energy is high. Visible body composition changes happening.",
+    calNormal:"1,550–1,800", calFast:"1,200–1,400", protein:"135–150g", fiber:"38–45g",
+    note:"Introduce supersets on moderate days. Increase metabolic stress, save time." },
+  { id:4, weeks:[33,44], label:"Final Push",       color:"#c9a84c", emoji:"🎯",
+    focus:"Approaching 180 lbs. Skin tightening. Muscle definition emerging. Stay the course.",
+    calNormal:"1,500–1,750", calFast:"1,150–1,350", protein:"140–155g", fiber:"40–45g",
+    note:"Shift to maintaining strength PRs. Protect muscle at all costs. Protein non-negotiable." },
+  { id:5, weeks:[45,52], label:"Recomp & Build",   color:"#22c55e", emoji:"🏆",
+    focus:"Goal achieved. Now build the body. Increase calories strategically. Muscle is the mission.",
+    calNormal:"1,900–2,200", calFast:"1,500–1,700", protein:"150–165g", fiber:"35–40g",
+    note:"Add 4th heavy day. More sets per exercise. Longer rest. Max strength is the metric now." },
+];
+
+const WEEK_DAYS = [
+  { day:"MON", type:"HEAVY", color:"#22c55e", dry:true,
+    schedule:["5:15 Wake + Fajr","5:35 Suhoor (protein+oats+banana+water)","6:00 Heavy Full Body Lift","8:30–5:00 Work (DRY FAST)","Maghrib → Break fast (water+electrolytes+protein)","7:00 Light meal","9:00 Reading — 26 pages","10:00 Sleep"] },
+  { day:"TUE", type:"MOD",   color:"#3b82f6", dry:false,
+    schedule:["5:15 Wake + Fajr","6:00 Moderate Full Body","12:00 Meal 1","3:00 Meal 2","6:30 Meal 3","8:30–11:30 Work","9:00 Reading — 26 pages","12:00 Sleep"] },
+  { day:"WED", type:"REST",  color:"#8899aa", dry:false,
+    schedule:["5:15 Wake + Fajr","Light walk + stretch","8:30–11:30 Work","Normal meals (3 windows)","9:00 Reading — 26 pages","12:00 Sleep"] },
+  { day:"THU", type:"REST",  color:"#ef4444", dry:true,
+    schedule:["5:15 Wake + Fajr","Light walking only (no gym)","8:30–11:30 Work (DRY FAST)","Maghrib → Break fast","9:00 Reading — 26 pages","12:00 Sleep"] },
+  { day:"FRI", type:"LIGHT", color:"#f97316", dry:false,
+    schedule:["5:15 Wake + Fajr","No AM training","8:30–11:30 Work","12:00 Meal 1 / 3:00 Meal 2","4:00–6:00 PM Light Full Body","6:30 Meal 3","9:00 Reading — 26 pages","12:00 Sleep"] },
+  { day:"SAT", type:"HEAVY", color:"#22c55e", dry:false,
+    schedule:["5:15 Wake + Fajr","6:00 Heavy Full Body Lift","12:00 Meal 1","3:00 Meal 2","3:30–11:30 Work","6:30 Meal 3","9:00 Reading — 26 pages","12:00 Sleep"] },
+  { day:"SUN", type:"MOD",   color:"#3b82f6", dry:false,
+    schedule:["5:15 Wake + Fajr","6:00 Moderate Full Body","Meal prep + groceries","Extra walking","9:00 Reading — 26 pages","10:00 Sleep"] },
+];
+
+const WORKOUT_META = {
+  HEAVY:{ label:"Heavy Full Body", duration:"65–75 min", goal:"Max strength — progressive overload. Add weight when all sets hit top rep range.", warmup:"5 min: jumping jacks + arm circles + bodyweight squats", repsIdx:0,
+    extra:[{name:"Weighted Plank",sets:"3",reps:"45–60 sec",note:"Add plate on back when bodyweight is easy."},
+           {name:"Farmer Carry",sets:"3",reps:"40 steps",note:"Heavy DBs. Builds core and grip strength."}] },
+  MOD:{   label:"Moderate Full Body",duration:"50–60 min", goal:"Volume & hypertrophy — build the muscle that replaces the fat.", warmup:"5 min: bike or treadmill + dynamic stretches", repsIdx:1,
+    extra:[{name:"Cable Crunch",sets:"3",reps:"15–20",note:"Kneel. Crunch DOWN — don't pull with arms."},
+           {name:"Face Pulls",sets:"3",reps:"20–25",note:"Light weight. Shoulder health is non-negotiable."}] },
+  LIGHT:{ label:"Light Full Body (PM)",duration:"35–45 min", goal:"Blood flow + active recovery + movement quality.", warmup:"5 min easy walk", repsIdx:2,
+    extra:[{name:"Dead Bug",sets:"3",reps:"10 each side",note:"Press lower back into floor the entire time."},
+           {name:"Glute Bridge",sets:"3",reps:"20",note:"2 second hold at top. Drive through heels."}] },
+  REST:{  label:"Active Recovery",duration:"Walking only", goal:"Repair — this is when muscle is actually built. Protect it.", warmup:"N/A", repsIdx:0,
+    extra:[] },
+};
+
+const LIFTS = [
+  { name:"Barbell Back Squat",        start:115, g1:10, g2:6,  unit:"lbs", muscle:"Quads / Glutes",      sets:[4,3,3], reps:["4–6","10–12","15–20"], rest:["3 min","2 min","90 sec"] },
+  { name:"Bench Press / DB Press",    start:85,  g1:5,  g2:3,  unit:"lbs", muscle:"Chest / Triceps",     sets:[4,3,3], reps:["4–6","10–12","15–20"], rest:["3 min","2 min","90 sec"] },
+  { name:"Bent-Over Barbell Row",     start:85,  g1:5,  g2:3,  unit:"lbs", muscle:"Back / Biceps",       sets:[4,3,3], reps:["4–6","10–12","15–20"], rest:["3 min","2 min","90 sec"] },
+  { name:"Romanian Deadlift",         start:95,  g1:10, g2:6,  unit:"lbs", muscle:"Hamstrings / Glutes", sets:[3,3,3], reps:["6–8","12–15","20"],    rest:["2.5 min","90 sec","60 sec"] },
+  { name:"Standing Overhead Press",   start:55,  g1:3.5,g2:2,  unit:"lbs", muscle:"Shoulders / Core",    sets:[3,3,3], reps:["6–8","12–15","20"],    rest:["2 min","90 sec","60 sec"] },
+  { name:"Barbell Hip Thrust",        start:95,  g1:10, g2:6,  unit:"lbs", muscle:"Glutes",              sets:[3,3,3], reps:["8–10","12–15","20"],   rest:["2 min","90 sec","60 sec"] },
+];
+
+const MEALS = [
+  { time:"Suhoor 5:35 AM — Mon/Thu Dry Fast Days", cal:700, protein:"45g", fiber:"12g",
+    items:["1.5 cups steel-cut oats","1 scoop whey protein","1 banana","1 tbsp chia seeds","1 tbsp almond butter","120 oz water before fast begins"],
+    heart:"Beta-glucan binds LDL and removes it before absorption. Banana potassium counteracts sodium excess.",
+    colon:"Resistant starch in oats is the #1 prebiotic for colon microbiome health. Chia seeds add soluble fiber that feeds good bacteria.",
+    skin:"Pre-fast collagen protection. Chia omega-3s maintain the skin barrier during fasting stress on the body." },
+  { time:"Meal 1 — 12:00 PM (Non-fast days)", cal:550, protein:"42g", fiber:"13g",
+    items:["5oz grilled chicken or wild salmon","½ cup black beans","2 cups spinach + arugula","½ avocado","10 cherry tomatoes","Olive oil + ACV dressing","1 Brazil nut (selenium dose)"],
+    heart:"Avocado raises HDL. Salmon omega-3s reduce arterial inflammation. Olive oil oleocanthal is nature's arterial ibuprofen.",
+    colon:"Cruciferous greens + beans = sulforaphane + prebiotic fiber. Most studied combination for colon cancer prevention in literature.",
+    skin:"Salmon collagen precursors + avocado biotin + vitamin E = skin elasticity trifecta during weight loss." },
+  { time:"Meal 2 — 3:00 PM", cal:520, protein:"44g", fiber:"10g",
+    items:["5oz lean turkey or chicken thigh","½ cup quinoa","1.5 cups broccoli + cauliflower","2 garlic cloves (roasted)","1 tsp turmeric + black pepper","1 tbsp olive oil"],
+    heart:"Garlic allicin reduces arterial stiffness within hours. Quinoa complete amino acids support arterial tissue repair.",
+    colon:"Broccoli indole-3-carbinol turns OFF cancer cell growth genes. Turmeric curcumin blocks tumor formation at the colon lining.",
+    skin:"Broccoli vitamin C is required for collagen synthesis. Turmeric reduces skin inflammation from weight loss stress." },
+  { time:"Meal 3 — 6:30 PM", cal:540, protein:"46g", fiber:"12g",
+    items:["5oz baked salmon or turkey chili","1 medium sweet potato","1.5 cups Brussels sprouts","1 tbsp extra virgin olive oil","Lemon + herbs","1 cup bone broth (collagen)"],
+    heart:"Ending the day with omega-3s + fiber clears lipids from blood during the overnight fasting window. Bone broth supports gut lining integrity.",
+    colon:"Brussels sprouts are the #1 colon cancer protective food in multiple peer-reviewed studies. Sweet potato beta-carotene neutralizes colon lining free radicals.",
+    skin:"Bone broth = Type I & III collagen direct. Sweet potato vitamin A promotes skin cell turnover. Most important skin-protective meal of the day." },
+  { time:"Maghrib Break-Fast — Mon/Thu Only", cal:400, protein:"35g", fiber:"6g",
+    items:["12–16 oz water immediately","Electrolyte packet (Na+K+Mg)","2 dates","30g whey protein shake","½ cup oats or 1 banana"],
+    heart:"Electrolytes after dry fast prevent blood pressure spike from rehydration shock. Critical cardiac protection.",
+    colon:"Dates contain tannins with anti-tumor properties. Slow refeeding protects gut lining from rapid osmotic shift.",
+    skin:"Immediate protein intake after fast halts muscle and skin collagen catabolism within minutes of eating." },
+];
+
+const AUTOPHAGY = [
+  { icon:"🔥", title:"Dry Fasting (Mon + Thu)", level:"ELITE",     color:"#c9a84c",
+    detail:"The most powerful autophagy trigger known. Activates cellular cleanup 3× faster than water fasting. During the fast, cells recycle damaged proteins including loose skin collagen — your #1 tool against loose skin during a 50 lb loss." },
+  { icon:"⏱", title:"16/8 Daily Fast Window",   level:"HIGH",      color:"#22c55e",
+    detail:"Last meal by 8 PM. First meal at 12 PM. After ~12 hours fasted, autophagy accelerates significantly. By hour 16, full cellular cleanup is active every single night." },
+  { icon:"💪", title:"Fasted AM Workouts",       level:"HIGH",      color:"#22c55e",
+    detail:"Training fasted (Mon/Sat/Sun/Tue) amplifies the autophagy signal already triggered by overnight fasting. Exercise + fasting = exponential autophagy vs. either alone." },
+  { icon:"👣", title:"11,000 Steps Daily",       level:"HIGH",      color:"#22c55e",
+    detail:"Walking sustains a low-grade autophagy signal all day AND mobilizes visceral fat faster than any other activity. At 230 lbs burns 400–500 extra calories daily." },
+  { icon:"🧬", title:"Collagen Rebuilding",      level:"HIGH",      color:"#22c55e",
+    detail:"Bone broth nightly + vitamin C foods + zinc = active collagen synthesis 24/7. Breaking old collagen via autophagy AND building tighter new collagen simultaneously." },
+  { icon:"📉", title:"Slow Loss Rate 1–1.5 lbs/wk", level:"CRITICAL", color:"#ef4444",
+    detail:"The #1 loose skin factor. Losing 50 lbs over 38–42 weeks gives skin time to contract as you shrink. The 1,650–1,900 cal target is deliberately set for this rate. Never crash diet." },
+  { icon:"🍵", title:"Green Tea 2–3 cups/day",   level:"MED",       color:"#3b82f6",
+    detail:"EGCG independently activates AMPK — same cellular pathway as fasting. On non-fast days extends your effective autophagy window at zero calories." },
+  { icon:"🚫", title:"Low Sugar / Whole Foods",  level:"MED",       color:"#3b82f6",
+    detail:"High blood sugar shuts off autophagy via insulin signaling. Every soda spike pauses cellular repair. This is why the Dr Pepper swap matters beyond just calories." },
+];
+
+const VITAMINS = [
+  { name:"Vitamin D3",            dose:"4,000 IU",        timing:"With breakfast fat",  color:"#c9a84c",
+    foods:"Salmon, sardines, egg yolks", role:"Colon cancer prevention — low D3 is a top independent risk factor. Also critical for immune, bone, and mood." },
+  { name:"Vitamin K2 (MK-7)",     dose:"100mcg",          timing:"With D3",             color:"#c9a84c",
+    foods:"Egg yolks, fermented foods",  role:"Routes calcium OUT of arteries INTO bones. Direct plaque reversal mechanism. Must pair with D3." },
+  { name:"Omega-3 (EPA+DHA)",     dose:"2–3g",            timing:"Largest meal",        color:"#3b82f6",
+    foods:"Salmon, sardines, walnuts",   role:"Reduces triglycerides, arterial inflammation, and colon polyp growth. Non-negotiable." },
+  { name:"Magnesium Glycinate",   dose:"400mg",           timing:"Before bed",          color:"#3b82f6",
+    foods:"Pumpkin seeds, spinach, dark chocolate", role:"Blood pressure, sleep quality, muscle recovery, insulin sensitivity." },
+  { name:"Vitamin C",             dose:"Food-first",      timing:"Throughout day",      color:"#f97316",
+    foods:"Red bell pepper (190mg/cup!), broccoli, strawberries", role:"Required for collagen synthesis. Neutralizes oxidized LDL in arteries. Boosts immunity." },
+  { name:"Zinc",                  dose:"15mg",            timing:"With protein meal",   color:"#22c55e",
+    foods:"Pumpkin seeds, chickpeas, oysters", role:"Skin repair, testosterone, immune function. Critical during rapid fat loss phase." },
+  { name:"Selenium",              dose:"1–2 Brazil nuts ONLY", timing:"Meal 1",         color:"#22c55e",
+    foods:"Brazil nuts, tuna, sardines", role:"Reduces colon cancer risk up to 50% in clinical studies. DO NOT supplement pills — toxicity risk." },
+  { name:"Folate (B9)",           dose:"Food-first",      timing:"Throughout day",      color:"#ef4444",
+    foods:"Lentils, spinach, avocado, asparagus", role:"Direct DNA repair in colon cells. Prevents mutation at the cellular level." },
+  { name:"Vitamin B12",           dose:"500–1000mcg",     timing:"Morning",             color:"#ef4444",
+    foods:"Sardines, salmon, eggs",      role:"Energy on fast days. Nerve health. Essential during caloric restriction." },
+  { name:"CoQ10",                 dose:"100–200mg",       timing:"With fat meal",       color:"#c9a84c",
+    foods:"Sardines, broccoli (small)",  role:"Heart muscle antioxidant. Fuels mitochondria. Amplifies fasting cardiovascular benefit." },
+  { name:"Berberine",             dose:"500mg 2×/day",    timing:"Before Meal 1 & 2",  color:"#c9a84c",
+    foods:"Supplement only",            role:"Lowers LDL + triglycerides. Activates AMPK (fasting pathway). Studied equal to some statins." },
+  { name:"Collagen Peptides",     dose:"10–15g/day",      timing:"Break-fast or Meal 1",color:"#22c55e",
+    foods:"Bone broth, fish skin, chicken skin", role:"Direct loose skin prevention. Type I & III collagen precursor during 50 lb weight loss." },
+];
+
+const CHECKLIST = [
+  { item:"Fajr prayed",                              cat:"Spirit" },
+  { item:"Dhuhr prayed",                             cat:"Spirit" },
+  { item:"Asr prayed",                               cat:"Spirit" },
+  { item:"Maghrib prayed",                           cat:"Spirit" },
+  { item:"Isha prayed",                              cat:"Spirit" },
+  { item:"Workout completed (or scheduled rest)",    cat:"Training" },
+  { item:"11,000 steps hit",                         cat:"Training" },
+  { item:"Protein target hit",                       cat:"Nutrition" },
+  { item:"Fiber 35–40g hit",                         cat:"Nutrition" },
+  { item:"110–130 oz water (non-fast days)",         cat:"Nutrition" },
+  { item:"No HFCS soda today",                       cat:"Nutrition" },
+  { item:"1 Brazil nut eaten",                       cat:"Nutrition" },
+  { item:"D3 + K2 + Omega-3 + Magnesium taken",     cat:"Supplements" },
+  { item:"Berberine taken (2×)",                     cat:"Supplements" },
+  { item:"Collagen peptides taken",                  cat:"Supplements" },
+  { item:"Reading — 26 pages done",                  cat:"Mind" },
+  { item:"In bed by target time",                    cat:"Recovery" },
+  { item:"Meal prep done (Sundays only)",            cat:"Recovery" },
+];
+
+const CAT_COLORS = { Spirit:"#c9a84c", Training:"#22c55e", Nutrition:"#3b82f6", Supplements:"#f97316", Mind:"#a78bfa", Recovery:"#ef4444" };
+
+const PRAYERS = [
+  { name:"Fajr",    time:"5:30–6:05 AM", icon:"🌙" },
+  { name:"Dhuhr",   time:"12:00 PM",     icon:"☀️" },
+  { name:"Asr",     time:"2:15–2:30 PM", icon:"🌤" },
+  { name:"Maghrib", time:"4:35–5:00 PM", icon:"🌇" },
+  { name:"Isha",    time:"6:00–6:20 PM", icon:"🌃" },
+];
+
+const WEIGHT_TIMELINE = [
+  { weeks:"1–4",  weight:"228–222", color:"#ef4444", note:"Rapid water + sodium weight loss. Gut adjusting to high fiber. Expect bloat days 3–5 — totally normal." },
+  { weeks:"5–12", weight:"222–211", color:"#f97316", note:"Pure fat loss begins. Energy stabilizes. Strength increasing at the gym. Face and neck visibly slimmer." },
+  { weeks:"13–24",weight:"211–197", color:"#c9a84c", note:"Major visual changes. Waist noticeably slimmer. Skin starts contracting. People will start noticing." },
+  { weeks:"25–36",weight:"197–183", color:"#3b82f6", note:"Home stretch. Muscle definition emerging. Autophagy actively tightening loose skin." },
+  { weeks:"37–44",weight:"183–178", color:"#22c55e", note:"Hit 180 range. Transition to maintenance calories. Shift focus to pure muscle building." },
+  { weeks:"45–52",weight:"178–182", color:"#22c55e", note:"Recomp phase. Slight calorie increase. Build muscle, skin fully adapting to new frame. 🏆" },
+];
+
+// ═══════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════
+
+function getPhase(week) {
+  return PHASES.find(p => week >= p.weeks[0] && week <= p.weeks[1]) || PHASES[4];
+}
+
+function estimateWeight(week) {
+  if (week <= 1)  return 230;
+  if (week <= 4)  return Math.round(230 - (week - 1) * 2);
+  if (week <= 40) return Math.round(224 - (week - 4) * 1.25);
+  if (week <= 44) return Math.round(179 - (week - 40) * 0.5);
+  return Math.round(177 + (week - 44) * 0.4);
+}
+
+function getLiftWeight(lift, week) {
+  const earlyWks = Math.min(week - 1, 20);
+  const lateWks  = Math.max(0, week - 21);
+  return Math.round(lift.start + Math.floor(earlyWks / 2) * lift.g1 + Math.floor(lateWks / 3) * lift.g2);
+}
+
+function hex(color, alpha) {
+  return color + Math.round(alpha * 255).toString(16).padStart(2,'0');
+}
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+
+const S = {
+  week: 1,
+  tab: "Overview",
+  dayIdx: 0,
+  expandedMeal: null,
+};
+
+function loadChecked() {
+  try { return JSON.parse(localStorage.getItem('p52_checks') || '{}'); } catch(e) { return {}; }
+}
+function saveChecked(obj) {
+  try { localStorage.setItem('p52_checks', JSON.stringify(obj)); } catch(e) {}
+}
+
+let CHECKED = loadChecked();
+
+function isChecked(week, idx) { return !!CHECKED[`${week}-${idx}`]; }
+function toggleChecked(week, idx) {
+  const key = `${week}-${idx}`;
+  CHECKED[key] = !CHECKED[key];
+  saveChecked(CHECKED);
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════
+
+function render() {
+  const phase   = getPhase(S.week);
+  const estWt   = estimateWeight(S.week);
+  const lost    = Math.max(0, 230 - estWt);
+  const toGo    = Math.max(0, estWt - 180);
+  const pct     = Math.min(100, Math.round((lost / 50) * 100));
+  const dayData = WEEK_DAYS[S.dayIdx];
+
+  renderHeader(phase, estWt, lost, toGo, pct);
+  renderWeekStrip(phase);
+  renderTabs(phase);
+  renderContent(phase, dayData, lost, toGo, pct);
+}
+
+function renderHeader(phase, estWt, lost, toGo, pct) {
+  document.getElementById('header').innerHTML = `
+    <div class="header-top">
+      <div>
+        <div class="header-phase" style="color:${phase.color}">${phase.emoji} PHASE ${phase.id}: ${phase.label.toUpperCase()} · EAGAN MN</div>
+        <div class="header-title">WEEK <span style="color:${phase.color}">${S.week}</span> <span style="color:var(--muted);font-size:clamp(14px,3vw,22px)">/ 52</span></div>
+        <div class="header-sub">230 → 180 lbs · Heart · Colon · Skin Autophagy</div>
+      </div>
+      <div class="weight-box" style="border-color:${phase.color}66">
+        <div class="weight-val" style="color:${phase.color}">${estWt} lbs</div>
+        <div class="weight-sub">${lost > 0 ? `−${lost} lbs lost` : 'Starting'} ${toGo > 0 ? `· ${toGo} to go` : '· 🏆 DONE'}</div>
+        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${pct}%;background:${phase.color}"></div></div>
+        <div style="font-size:10px;color:var(--muted);margin-top:3px">${pct}% of 50 lb goal</div>
+      </div>
+    </div>
+    <div class="focus-bar" style="color:${phase.color};border-left-color:${phase.color};background:${hex(phase.color,0.07)}">
+      💬 Week ${S.week}: ${phase.focus}
+    </div>
+    <div class="anchors">
+      ${[['💪',phase.protein,'Protein'],['🍽',phase.calNormal,'Calories'],['🌿',phase.fiber,'Fiber'],['👣','11,000','Steps'],['💧','110–130oz','Water'],['⏰','16/8','Fast']].map(([i,v,l])=>`
+        <div class="anchor-chip"><div style="font-size:13px">${i}</div><div class="anchor-val">${v}</div><div class="anchor-label">${l}</div></div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderWeekStrip(phase) {
+  document.getElementById('week-strip').innerHTML = `
+    <div class="week-scroll" id="wscroll">
+      ${Array.from({length:52},(_,i)=>i+1).map(w=>{
+        const p = getPhase(w);
+        const active = w === S.week;
+        return `<button class="week-btn${active?' active':''}${w<S.week?' past':''}" 
+          style="${active?`color:${p.color};border-color:${p.color};background:${hex(p.color,0.18)}`:`border-color:${hex(p.color,0.35)}`}"
+          onclick="setWeek(${w})">${w}</button>`;
+      }).join('')}
+    </div>
+    <div class="phase-legend">
+      ${PHASES.map(p=>`<div class="legend-item"><div class="legend-dot" style="background:${p.color}"></div><span style="color:${p.color}">${p.emoji} Wk${p.weeks[0]}–${p.weeks[1]}</span><span>${p.label}</span></div>`).join('')}
+    </div>
+    <div class="scroll-hint">← SCROLL WEEKS →</div>
+  `;
+  // scroll active week into view
+  setTimeout(()=>{
+    const sc = document.getElementById('wscroll');
+    const btn = sc && sc.children[S.week-1];
+    if (btn) btn.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+  },50);
+}
+
+function renderTabs(phase) {
+  const tabs = ["Overview","Training","Nutrition","Autophagy","Vitamins","Checklist"];
+  document.getElementById('tabs').innerHTML = `
+    <div class="tab-bar">
+      ${tabs.map(t=>`<button class="tab-btn${S.tab===t?' active':''}" 
+        style="${S.tab===t?`color:${phase.color};border-bottom-color:${phase.color}`:''}"
+        onclick="setTab('${t}')">${t.toUpperCase()}</button>`).join('')}
+    </div>
+  `;
+}
+
+function renderContent(phase, dayData, lost, toGo, pct) {
+  const content = document.getElementById('content');
+  switch(S.tab) {
+    case 'Overview':   content.innerHTML = renderOverview(phase, dayData, lost); break;
+    case 'Training':   content.innerHTML = renderTraining(phase, dayData); break;
+    case 'Nutrition':  content.innerHTML = renderNutrition(phase); break;
+    case 'Autophagy':  content.innerHTML = renderAutophagy(lost); break;
+    case 'Vitamins':   content.innerHTML = renderVitamins(); break;
+    case 'Checklist':  content.innerHTML = renderChecklist(phase); break;
+  }
+}
+
+// ── OVERVIEW ──────────────────────────────────────────
+
+function renderOverview(phase, dayData) {
+  const dayNames = ["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY","SUNDAY"];
+  return `
+    <div class="day-grid">
+      ${WEEK_DAYS.map((d,i)=>`
+        <button class="day-btn" onclick="setDayIdx(${i})"
+          style="${S.dayIdx===i?`background:${hex(d.color,0.18)};border-color:${d.color};color:${d.color}`:''}">
+          ${d.day}
+          <div class="day-type">${d.type}</div>
+          ${d.dry?`<div class="day-dry">DRY</div>`:''}
+        </button>
+      `).join('')}
+    </div>
+
+    <div class="card" style="border-color:${hex(dayData.color,0.35)}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+        <div>
+          <div class="section-label" style="color:${dayData.color}">${dayNames[S.dayIdx]}</div>
+          <div style="font-size:20px;font-weight:bold;color:#fff">${WORKOUT_META[dayData.type].label}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${dayData.dry?`<span class="badge" style="color:var(--red);border-color:var(--red);background:rgba(239,68,68,0.1)">DRY FAST</span>`:''}
+          <span class="badge" style="color:${dayData.color};border-color:${dayData.color};background:${hex(dayData.color,0.1)}">${dayData.type}</span>
+        </div>
+      </div>
+      ${dayData.schedule.map((item,i)=>`
+        <div class="schedule-item" style="${i===dayData.schedule.length-1?'border-bottom:none':''}">
+          <div class="schedule-num" style="background:${hex(dayData.color,0.2)};border:1px solid ${hex(dayData.color,0.35)};color:${dayData.color}">${i+1}</div>
+          <div class="schedule-text">${item}</div>
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="card gold-border">
+      <div class="section-label" style="color:var(--gold)">🕌 PRAYER WINDOWS — EAGAN MN WINTER</div>
+      <div class="prayer-grid">
+        ${PRAYERS.map(p=>`
+          <div class="prayer-chip">
+            <div class="prayer-icon">${p.icon}</div>
+            <div class="prayer-name">${p.name}</div>
+            <div class="prayer-time">${p.time}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <div class="card" style="border-color:${hex(phase.color,0.3)};background:${hex(phase.color,0.06)}">
+      <div class="section-label" style="color:${phase.color}">WEEK ${S.week} TRAINING DIRECTIVE</div>
+      <div style="font-size:13px;line-height:1.7;color:var(--text)">${phase.note}</div>
+    </div>
+
+    <div class="card gold-border">
+      <div class="section-label" style="color:var(--gold)">52-WEEK WEIGHT PROJECTION · 230 → 180 LBS</div>
+      ${WEIGHT_TIMELINE.map((w,i)=>`
+        <div class="timeline-row" style="${i===WEIGHT_TIMELINE.length-1?'border-bottom:none':''}">
+          <div class="timeline-wk">Wk ${w.weeks}</div>
+          <div class="timeline-weight" style="color:${w.color}">${w.weight}</div>
+          <div class="timeline-note">${w.note}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+// ── TRAINING ─────────────────────────────────────────
+
+function renderTraining(phase, dayData) {
+  const wm = WORKOUT_META[dayData.type];
+  const isRest = dayData.type === 'REST';
+  const dayNames = ["MON","TUE","WED","THU","FRI","SAT","SUN"];
+
+  return `
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+      ${WEEK_DAYS.map((d,i)=>`
+        <button style="padding:7px 11px;border-radius:20px;border:1px solid ${S.dayIdx===i?d.color:'var(--border)'};background:${S.dayIdx===i?hex(d.color,0.18):'var(--card)'};color:${S.dayIdx===i?d.color:'var(--muted)'};font-size:11px;font-family:'Courier New',monospace;cursor:pointer"
+          onclick="setDayIdx(${i})">${d.day} · ${d.type}</button>
+      `).join('')}
+    </div>
+
+    <div class="card" style="border-color:${hex(dayData.color,0.35)}">
+      <div class="section-label" style="color:${dayData.color}">WEEK ${S.week} · ${dayNames[S.dayIdx]}</div>
+      <div style="font-size:21px;font-weight:bold;color:#fff;margin-bottom:4px">${wm.label}</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">${wm.goal}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+        <div style="background:var(--panel);border-radius:8px;padding:6px 11px;font-size:12px;color:${phase.color}">⏱ ${wm.duration}</div>
+        ${!isRest?`<div style="background:var(--panel);border-radius:8px;padding:6px 11px;font-size:12px;color:var(--blue)">🔥 ${wm.warmup}</div>`:''}
+      </div>
+
+      ${isRest ? `
+        ${[{name:"Walking — 11k steps",sets:"All day",reps:"Ongoing",note:"Split into morning + evening. The #1 fat mobilization tool at your current weight."},
+           {name:"Full Body Stretch",sets:"1 round",reps:"15 min",note:"Hip flexors, hamstrings, lats, thoracic spine. Do this every rest day."},
+           {name:"Foam Rolling",sets:"1 round",reps:"10 min",note:"Quads, IT band, glutes, upper back. Slow and deliberate pressure."}].map(ex=>`
+          <div class="ex-card">
+            <div class="ex-name">${ex.name}</div>
+            <div class="ex-stats">
+              <div class="ex-stat" style="background:${hex(dayData.color,0.15)};border-color:${hex(dayData.color,0.35)}">
+                <div class="ex-stat-val" style="color:${dayData.color};font-size:13px">${ex.sets}</div>
+                <div class="ex-stat-label">SETS</div>
+              </div>
+              <div class="ex-stat" style="background:${hex(dayData.color,0.15)};border-color:${hex(dayData.color,0.35)}">
+                <div class="ex-stat-val" style="color:${dayData.color};font-size:13px">${ex.reps}</div>
+                <div class="ex-stat-label">REPS</div>
+              </div>
+            </div>
+            <div class="ex-note">💡 ${ex.note}</div>
+          </div>
+        `).join('')}
+      ` : `
+        ${LIFTS.map(lift=>{
+          const w = getLiftWeight(lift, S.week);
+          const prev = S.week > 1 ? getLiftWeight(lift, S.week-1) : w;
+          const gain = w - prev;
+          const ri = wm.repsIdx;
+          return `
+            <div class="ex-card">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+                <div>
+                  <div class="ex-name">${lift.name}</div>
+                  <div class="ex-muscle">🎯 ${lift.muscle}</div>
+                </div>
+                <div class="ex-stats" style="margin:0">
+                  <div class="ex-stat" style="background:${hex(dayData.color,0.15)};border-color:${hex(dayData.color,0.4)}">
+                    <div class="ex-stat-val" style="color:${dayData.color}">${lift.sets[ri]}</div>
+                    <div class="ex-stat-label">SETS</div>
+                  </div>
+                  <div class="ex-stat" style="background:${hex(dayData.color,0.15)};border-color:${hex(dayData.color,0.4)}">
+                    <div class="ex-stat-val" style="color:${dayData.color};font-size:14px">${lift.reps[ri]}</div>
+                    <div class="ex-stat-label">REPS</div>
+                  </div>
+                  <div class="ex-stat" style="background:${hex(phase.color,0.15)};border-color:${hex(phase.color,0.4)}">
+                    <div class="ex-stat-val" style="color:${phase.color}">${w}</div>
+                    <div class="ex-stat-label">LBS</div>
+                  </div>
+                </div>
+              </div>
+              <div style="font-size:11px;color:var(--muted);font-family:'Courier New',monospace;margin-top:7px">REST: ${lift.rest[ri]}</div>
+              ${gain>0?`<div class="ex-gain">📈 +${gain} lbs from last week</div>`:''}
+            </div>
+          `;
+        }).join('')}
+        ${wm.extra.map(ex=>`
+          <div class="ex-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+              <div class="ex-name">${ex.name}</div>
+              <div style="display:flex;gap:5px">
+                <div style="background:var(--border);border-radius:7px;padding:4px 9px;font-size:12px;color:var(--muted)">${ex.sets} sets</div>
+                <div style="background:var(--border);border-radius:7px;padding:4px 9px;font-size:12px;color:var(--muted)">${ex.reps}</div>
+              </div>
+            </div>
+            <div class="ex-note">💡 ${ex.note}</div>
+          </div>
+        `).join('')}
+      `}
+
+      <div style="margin-top:12px;background:${hex(phase.color,0.08)};border:1px solid ${hex(phase.color,0.3)};border-radius:10px;padding:12px">
+        <div class="section-label" style="color:${phase.color};margin-bottom:5px">WEEK ${S.week} PROGRESSION RULE</div>
+        <div style="font-size:12px;color:var(--gold-l)">
+          ${phase.id<=2 ? "Add weight when you hit the TOP rep for ALL sets. Upper body: +5 lbs. Lower body: +10 lbs. Log every session." :
+            phase.id<=4 ? "Prioritize completing all reps cleanly before adding weight. Form breakdown = no weight increase that week." :
+            "Push heavier each session. Rest 3–4 min on compounds. Strength PRs are the primary metric now."}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ── NUTRITION ─────────────────────────────────────────
+
+function renderNutrition(phase) {
+  return `
+    <div class="card" style="border-color:${hex(phase.color,0.35)}">
+      <div class="section-label" style="color:${phase.color}">WEEK ${S.week} NUTRITION TARGETS — PHASE ${phase.id}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${[['🍽',phase.calNormal,'Normal Cal'],['🔥',phase.calFast,'Dry Fast Cal'],['💪',phase.protein,'Protein'],['🌿',phase.fiber,'Fiber'],['🍬','<30g','Added Sugar'],['🧂','<2,000mg','Sodium']].map(([i,v,l])=>`
+          <div class="macro-chip" style="border-color:var(--border)">
+            <div class="macro-val" style="color:var(--gold-l)">${i} ${v}</div>
+            <div class="macro-label">${l}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    ${MEALS.map((meal,idx)=>`
+      <div class="meal-card${S.expandedMeal===idx?' open':''}" onclick="toggleMeal(${idx})">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div class="meal-time">${meal.time}</div>
+            <div class="meal-meta">
+              <span class="meal-meta-item">🔥 <strong style="color:var(--gold-l)">${meal.cal}</strong> <span style="color:var(--muted)">cal</span></span>
+              <span class="meal-meta-item">💪 <strong style="color:var(--gold-l)">${meal.protein}</strong> <span style="color:var(--muted)">protein</span></span>
+              <span class="meal-meta-item">🌿 <strong style="color:var(--gold-l)">${meal.fiber}</strong> <span style="color:var(--muted)">fiber</span></span>
+            </div>
+          </div>
+          <div class="meal-expand-arrow">${S.expandedMeal===idx?'▲':'▼'}</div>
+        </div>
+        ${S.expandedMeal===idx?`
+          <div style="margin-top:13px">
+            <div class="tag-row">${meal.items.map(item=>`<span class="tag">${item}</span>`).join('')}</div>
+            <div class="insight" style="border-left-color:var(--red);background:rgba(239,68,68,0.05)">
+              <div class="insight-label" style="color:var(--red)">🫀 HEART & BLOOD FLOW</div>
+              <div class="insight-text">${meal.heart}</div>
+            </div>
+            <div class="insight" style="border-left-color:var(--green);background:rgba(34,197,94,0.05)">
+              <div class="insight-label" style="color:var(--green)">🧬 COLON CANCER PREVENTION</div>
+              <div class="insight-text">${meal.colon}</div>
+            </div>
+            <div class="insight" style="border-left-color:var(--gold);background:rgba(201,168,76,0.05)">
+              <div class="insight-label" style="color:var(--gold)">✨ SKIN & AUTOPHAGY</div>
+              <div class="insight-text">${meal.skin}</div>
+            </div>
+          </div>
+        `:''}
+      </div>
+    `).join('')}
+  `;
+}
+
+// ── AUTOPHAGY ─────────────────────────────────────────
+
+function renderAutophagy(lost) {
+  return `
+    <div class="card" style="border-color:rgba(239,68,68,0.35)">
+      <div class="section-label" style="color:var(--red)">LOOSE SKIN PREVENTION · CELLULAR RENEWAL · PLAQUE REVERSAL</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.7">
+        Your dry fasting + 16/8 + fasted lifts + 11k steps creates elite-tier autophagy. At <strong style="color:#fff">Week ${S.week}</strong>, you've theoretically cleared <strong style="color:var(--green)">${lost} lbs</strong> — skin autophagy is actively tightening collagen faster than the fat leaves.
+      </div>
+    </div>
+
+    ${AUTOPHAGY.map(item=>`
+      <div class="info-card" style="border-color:${hex(item.color,0.25)}">
+        <div style="display:flex;gap:11px;align-items:flex-start">
+          <div style="font-size:26px">${item.icon}</div>
+          <div style="flex:1">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
+              <div style="font-size:15px;font-weight:bold;color:#fff">${item.title}</div>
+              <span class="badge" style="color:${item.color};border-color:${item.color};background:${hex(item.color,0.12)}">${item.level}</span>
+            </div>
+            <div style="margin-top:8px;font-size:12px;color:var(--muted);line-height:1.7;border-left:2px solid var(--border);padding-left:11px">${item.detail}</div>
+          </div>
+        </div>
+      </div>
+    `).join('')}
+  `;
+}
+
+// ── VITAMINS ──────────────────────────────────────────
+
+function renderVitamins() {
+  return `
+    <div class="card gold-border">
+      <div class="section-label" style="color:var(--gold)">MICRONUTRIENT OPTIMIZATION · ALL 52 WEEKS</div>
+      <div style="font-size:13px;color:var(--muted)">Food-first approach. Supplements fill gaps that even a perfect diet in MN winter cannot cover. These doses stay consistent all year.</div>
+    </div>
+
+    ${VITAMINS.map(v=>`
+      <div class="info-card" style="border-color:${hex(v.color,0.25)}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+          <div>
+            <div style="font-size:16px;font-weight:bold;color:#fff">${v.name}</div>
+            <div style="font-size:11px;color:${v.color};font-family:'Courier New',monospace;margin-top:2px">${v.dose}</div>
+          </div>
+          <div style="background:var(--panel);border-radius:7px;padding:4px 10px;font-size:11px;color:var(--muted)">⏰ ${v.timing}</div>
+        </div>
+        <div style="margin-top:8px">
+          <div style="background:var(--panel);border-radius:8px;padding:5px 11px;font-size:12px;color:var(--green);display:inline-block">🥦 ${v.foods}</div>
+        </div>
+        <div style="margin-top:8px;font-size:12px;color:var(--text);line-height:1.6;background:${hex(v.color,0.07)};border-radius:8px;padding:8px 11px">${v.role}</div>
+      </div>
+    `).join('')}
+  `;
+}
+
+// ── CHECKLIST ─────────────────────────────────────────
+
+function renderChecklist(phase) {
+  const total = CHECKLIST.length;
+  const done  = CHECKLIST.filter((_,i)=>isChecked(S.week,i)).length;
+  const pct   = Math.round((done/total)*100);
+  const cats  = [...new Set(CHECKLIST.map(c=>c.cat))];
+
+  return `
+    <div class="card" style="border-color:${hex(phase.color,0.35)}">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div class="section-label" style="color:${phase.color}">DAILY CHECKLIST · WEEK ${S.week}</div>
+          <div style="font-size:28px;font-weight:bold;color:#fff;margin-top:4px">${done}<span style="color:var(--muted);font-size:18px">/${total}</span></div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">Saves automatically · Resets per week</div>
+        </div>
+        <div class="circle-progress" style="border-color:${done===total?'var(--green)':phase.color};color:${done===total?'var(--green)':phase.color}">${pct}%</div>
+      </div>
+    </div>
+
+    ${cats.map(cat=>{
+      const color = CAT_COLORS[cat] || '#fff';
+      const items = CHECKLIST.map((c,i)=>({...c,idx:i})).filter(c=>c.cat===cat);
+      return `
+        <div class="section-label" style="color:${color};margin-bottom:7px">${cat.toUpperCase()}</div>
+        ${items.map(item=>{
+          const done = isChecked(S.week, item.idx);
+          return `
+            <div class="check-item${done?' done':''}" onclick="checkToggle(${item.idx})"
+              style="${done?`background:${hex(color,0.08)};border-color:${hex(color,0.4)}`:''}">
+              <div class="check-box" style="${done?`background:${color};border-color:${color}`:`border-color:var(--border)`}">${done?'✓':''}</div>
+              <div class="check-text">${item.item}</div>
+            </div>
+          `;
+        }).join('')}
+        <div style="height:6px"></div>
+      `;
+    }).join('')}
+
+    ${done===total?`
+      <div class="complete-banner">
+        <div style="font-size:40px">🏆</div>
+        <div style="font-size:20px;font-weight:bold;color:var(--green);margin-top:8px">Week ${S.week} Day Complete</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:4px">Every day compounds. ${52-S.week} weeks to go. Stay the course.</div>
+      </div>
+    `:''}
+  `;
+}
+
+// ═══════════════════════════════════════════════════════
+// EVENT HANDLERS (global, called from HTML)
+// ═══════════════════════════════════════════════════════
+
+function setWeek(w) {
+  S.week = w;
+  S.expandedMeal = null;
+  render();
+}
+
+function setTab(t) {
+  S.tab = t;
+  S.expandedMeal = null;
+  render();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function setDayIdx(i) {
+  S.dayIdx = i;
+  render();
+}
+
+function toggleMeal(idx) {
+  S.expandedMeal = S.expandedMeal === idx ? null : idx;
+  renderContent(getPhase(S.week), WEEK_DAYS[S.dayIdx], Math.max(0,230-estimateWeight(S.week)), Math.max(0,estimateWeight(S.week)-180), 0);
+}
+
+function checkToggle(idx) {
+  toggleChecked(S.week, idx);
+  renderContent(getPhase(S.week), WEEK_DAYS[S.dayIdx], Math.max(0,230-estimateWeight(S.week)), Math.max(0,estimateWeight(S.week)-180), 0);
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+render();
+</script>
+</body>
+</html>
